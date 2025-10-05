@@ -10,7 +10,8 @@
     "test": "npm run build && node dist/dayplanner-tests.js",
     "manual": "npm run build && node -e \"require('./dist/dayplanner-tests.js').testManualScheduling()\"",
     "llm": "npm run build && node -e \"require('./dist/dayplanner-tests.js').testLLMScheduling()\"",
-    "mixed": "npm run build && node -e \"require('./dist/dayplanner-tests.js').testMixedScheduling()\""
+    "mixed": "npm run build && node -e \"require('./dist/dayplanner-tests.js').testMixedScheduling()\"",
+    "summarize:pages": "npm run build && node dist/summarizer-tests.js"
   },
   "keywords": ["gemini", "ai", "schedule", "student", "demo", "typescript"],
   "author": "Student Demo",
