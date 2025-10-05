@@ -42,36 +42,35 @@ async function main() {
 	const llm = new GeminiLLM({ apiKey: config.apiKey });
 
 	const summarizer = new Summarizer();
+	const section = summarizer.createSection(process.argv[2] || '');
 
-	const imageArgs = process.argv.slice(2);
-	if (imageArgs.length < 2) {
-		console.error('Usage: npm run summarize:pages -- <title> <image>');
+	const imageArgs = process.argv.slice(3);
+	if (imageArgs.length === 0) {
+		console.error('Usage: npm run summarize:pages -- <topic> <image1> [image2 ...]');
 		process.exit(1);
 	}
 
-	const title = imageArgs[0];
-	const imagePath = imageArgs[1];
-	const lower = imagePath.toLowerCase();
-	const mimeType = lower.endsWith('.png') ? 'image/png' : (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) ? 'image/jpeg' : 'image/png';
-	const img = toBase64ImagePartFromFile(imagePath, mimeType);
-	
-	const section = summarizer.createSection(title, img.dataBase64, img.mimeType);
-	const summary = await summarizer.addSummary(section.id, vision as any);
-	console.log(`Processed image: ${imagePath}`);
+	for (const imagePath of imageArgs) {
+		const lower = imagePath.toLowerCase();
+		const mimeType = lower.endsWith('.png') ? 'image/png' : (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) ? 'image/jpeg' : 'image/png';
+		const img = toBase64ImagePartFromFile(imagePath, mimeType);
+		await summarizer.addPageAndProcess(section.id, { title: imagePath, dataBase64: img.dataBase64, mimeType: img.mimeType }, vision as any);
+		console.log(`Processed page: ${imagePath}`);
+	}
 
-	console.log('\n=== SECTION INFO ===');
-	console.log(`Title: ${section.title}`);
-	console.log(`ID: ${section.id}`);
-	console.log(`MIME Type: ${section.mimeType}`);
+	console.log('\n=== SECTION SUMMARY ===');
+	console.log(section.summary);
 
-	console.log('\n=== SUMMARY ===');
-	console.log(summary);
+	console.log('\n=== PAGE SUMMARIES ===');
+	for (const p of section.pages) {
+		console.log(`\n# ${p.image.title || p.id}`);
+		console.log(p.pageSummary);
+	}
 
-	console.log('\n=== ALL SUMMARIES ===');
-	const summaries = summarizer.getSummaries();
-	for (const [sectionId, summaryText] of Object.entries(summaries)) {
-		console.log(`\nSection ${sectionId}:`);
-		console.log(summaryText);
+	console.log('\n=== FULL PAGE TEXTS ===');
+	for (const p of section.pages) {
+		console.log(`\n# ${p.image.title || p.id}`);
+		console.log(p.translatedText);
 	}
 }
 
