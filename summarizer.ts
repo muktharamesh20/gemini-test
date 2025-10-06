@@ -49,7 +49,12 @@ async generateSummaryDirectly(
 		const summary = (await llm.executeLLM(summaryPrompt)).trim();
 		
 		// Validate the generated summary
-		this.validateSummary(summary, transcribedText);
+		try {
+			this.validateSummary(summary, transcribedText);
+		} catch (error) {
+			const summary = (await llm.executeLLM(summaryPrompt)).trim();
+			this.validateSummary(summary, transcribedText);
+		}
 
 		// Add the summary to the summaries
 		this.addSummaryDirectly(section.id, summary);

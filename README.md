@@ -1,182 +1,54 @@
-# DayPlanner 
-A simple day planner. This implementation focuses on the core concept of organizing activities for a single day with both manual and AI-assisted scheduling.
+## Concept
+**Summaries[Item]**
+- **Purpose** Highlights the most important part of Item
+- **Principle** The user has an item and wants it summarized.  the user creates a summary and associates it with the item, and the user can now view the summary for that item.
+- **State:** Set of `Item` with 
+    - summary String  
+- **Actions:**
+    - `setSummary(summary: String, item: Item): (s: Summary)`
+        - **effect** if `item` already exists, change the summary associated with `item` to `summary`.  If `item` does not exist in Summaries, create a new summary for `item` with a summary `summary`.
 
-## Concept: DayPlanner
+## AI Augmentation
+**Summaries[Item]**
+- **Purpose** Highlights the most important part of Item
+- **Principle** The user can either manually create a summary or ask an LLM to generate one. The LLM receives the Item content and then returns a concise, readable summary. The user can accept or edit this summary.
+- **State:** Set of `Item` with 
+    - summary String  
+- **Actions:**
+    - `setSummary(summary: String, item: Item): (s: Summary)`
+        - **effect** if `item` already exists, change the summary associated with `item` to `summary`.  If `item` does not exist in Summaries, create a new summary for `item` with a summary `summary`.
+    - `setSummaryWithAI(text: String, item: Item): (s: Summary)`
+        - **requires** text is nonempty, clear, and has some central topic
+        - **effect** creates a summary of `text` and associates it with the item
 
-**Purpose**: Help you organize activities for a single day  
-**Principle**: You can add activities one at a time, assign them to times, and then observe the completed schedule
 
-### Core State
-- **Activities**: Set of activities with title, duration, and optional startTime
-- **Assignments**: Set of activity-to-time assignments
-- **Time System**: All times in half-hour slots starting at midnight (0 = 12:00 AM, 13 = 6:30 AM)
+This augmentation reduces friction and saves time when it comes to creating summaries of the different sections.  It is also useful for reviewing material, and allows the user to quickly look at what a section/note is about without having to spend time/effort combing through all of the notes or writing up a summary themselves (especially if they don't understand the material yet and can't come up with a good summary themselves).
 
-### Core Actions
-- `addActivity(title: string, duration: number): Activity`
-- `removeActivity(activity: Activity)`
-- `assignActivity(activity: Activity, startTime: number)`
-- `unassignActivity(activity: Activity)`
-- `requestAssignmentsFromLLM()` - AI-assisted scheduling with hardwired preferences
 
-## Prerequisites
+## User Journey
 
-- **Node.js** (version 14 or higher)
-- **TypeScript** (will be installed automatically)
-- **Google Gemini API Key** (free at [Google AI Studio](https://makersuite.google.com/app/apikey))
+![User Journey](./userJourney.PNG)
 
-## Quick Setup
+Every time a user finishes writing a section, there would be an automatic sync to transcribe and summarize the section.  The user doesn't see this summary until they return to the note. When they do, they can click on the summary button of a section to get a brief overview without having to read through all the notes. The user can also choose to modify the summary themselves via a button on the summary page.
 
-### 0. Clone the repo locally and navigate to it
-```cd intro-gemini-schedule```
 
-### 1. Install Dependencies
+### Richer Test Cases + Prompts
+1. Original Prompt: "Summarize the following notes to help a student understand the concept better. You will simply add helpful context, not repeat the notes.  On the app that this will appear on, you will be on a side bar next to the notes Include key steps and common pitfalls, and a tiny example if relevant.  Keep it concise (<=5 bullet points). Input:"
 
-```bash
-npm install
-```
+For this one, the summaries kept starting with the words "Here's a summary of".  I didn't want any language that wasn't directly related to the summary.  On one of the test cases, it also said "I couldn't generate a summary", and I didn't want any meta-language like that.  In order to limit this, here's the new prompt I created:
 
-### 2. Add Your API Key
+2. "Summarize the following notes to help a student understand the concept better. You are not explaining that you are summarizing — just provide the actual summary itself. Avoid any introductory or meta-language (e.g., ‘Here’s a summary,’ or ‘I couldn’t generate a summary’). Your summary should be written as 3–5 concise bullet points, each capturing a key step, insight, or common mistake, with a small illustrative example if helpful. Keep the language clear, direct, and contextually tied to the input."
 
-**Why use a template?** The `config.json` file contains your private API key and should never be committed to version control. The template approach lets you:
-- Keep the template file in git (safe to share)
-- Create your own `config.json` locally (keeps your API key private)
-- Easily set up the project on any machine
 
-**Step 1:** Copy the template file:
-```bash
-cp config.json.template config.json
-```
+For one test, I tried putting a short Gauss Jordan transcript and got back notes about fractions.  The LLM should have caught that there was no relevance to the transcript.  In order to make sure that the summary stays relevant, I changed the prompt to make sure that it only answered it knew the answer and to check that it was relevant.
 
-**Step 2:** Edit `config.json` and add your API key:
-```json
-{
-  "apiKey": "YOUR_GEMINI_API_KEY_HERE"
-}
-```
 
-**To get your API key:**
-1. Go to [Google AI Studio](https://makersuite.google.com/app/apikey)
-2. Sign in with your Google account
-3. Click "Create API Key"
-4. Copy the key and paste it into `config.json` (replacing `YOUR_GEMINI_API_KEY_HERE`)
+3. "Summarize the following notes to help a student understand the concept better. Before writing the summary, double-check that your summary accurately reflects the content of the notes. If you detect that your summary might not match the topic or meaning of the notes, do not output a summary — instead, respond with: ‘The summary could not be generated because the content was unclear or unrelated.’ Provide only the summary itself, with no meta-language. Write 3–5 concise bullet points that highlight key ideas, steps, or common mistakes, with short examples if useful. Keep it accurate, relevant, and tied directly to the notes provided."
 
-### 3. Run the Application
+For this one, the first test case with the Gaussian Elimination Notes created a very long summary compared to the transcription.  I added a validator, and it said the summary was 60% of the original text length.  In order to accomodate this, I adjusted the prompt to specifically try to be concise, and be more like a table of contents than anything.
 
-**Run all test cases:**
-```bash
-npm start
-```
+4. `Summarize the following notes to help a student understand the concept better. If you detect that your summary might not match the topic or meaning of the notes, do not output a summary — instead, respond with: "The summary could not be generated because the content was unclear or unrelated." Provide only the summary itself, with no meta-language. Write bullet points that highlight key ideas, steps, or common mistakes, but make it like a table of contents and keep it very concise. Again, to reiterate, keep it as concise as possible, making it at most 40% of the total transcript length. Try writing 3–5 bullet points total. Make sure that you only add high level concepts, not detailed steps. Keep it accurate, relevant, and tied directly to the notes provided.`
 
-**Run specific test cases:**
-```bash
-npm run manual    # Manual scheduling only
-npm run llm       # LLM-assisted scheduling only
-npm run mixed     # Mixed manual + LLM scheduling
-```
 
-## File Structure
-
-```
-dayplanner/
-├── package.json              # Dependencies and scripts
-├── tsconfig.json             # TypeScript configuration
-├── config.json               # Your Gemini API key
-├── dayplanner-types.ts       # Core type definitions
-├── dayplanner.ts             # DayPlanner class implementation
-├── dayplanner-llm.ts         # LLM integration
-├── dayplanner-tests.ts       # Test cases and examples
-├── dist/                     # Compiled JavaScript output
-└── README.md                 # This file
-```
-
-## Test Cases
-
-The application includes three comprehensive test cases:
-
-### 1. Manual Scheduling
-Demonstrates adding activities and manually assigning them to time slots:
-
-```typescript
-const planner = new DayPlanner();
-const breakfast = planner.addActivity('Breakfast', 1); // 30 minutes
-planner.assignActivity(breakfast, 14); // 7:00 AM
-```
-
-### 2. LLM-Assisted Scheduling
-Shows AI-powered scheduling with hardwired preferences:
-
-```typescript
-const planner = new DayPlanner();
-planner.addActivity('Morning Jog', 2);
-planner.addActivity('Math Homework', 4);
-await llm.requestAssignmentsFromLLM(planner);
-```
-
-### 3. Mixed Scheduling
-Combines manual assignments with AI assistance for remaining activities.
-
-## Sample Output
-
-```
-📅 Daily Schedule
-==================
-7:00 AM - Breakfast (30 min)
-8:00 AM - Morning Workout (1 hours)
-10:00 AM - Study Session (1.5 hours)
-1:00 PM - Lunch (30 min)
-3:00 PM - Team Meeting (1 hours)
-7:00 PM - Dinner (30 min)
-9:00 PM - Evening Reading (1 hours)
-
-📋 Unassigned Activities
-========================
-All activities are assigned!
-```
-
-## Key Features
-
-- **Simple State Management**: Activities and assignments stored in memory
-- **Flexible Time System**: Half-hour slots from midnight (0-47)
-- **Query-Based Display**: Schedule generated on-demand, not stored sorted
-- **AI Integration**: Hardwired preferences in LLM prompt (no external hints)
-- **Conflict Detection**: Prevents overlapping activities
-- **Clean Architecture**: First principles implementation with no legacy code
-
-## LLM Preferences (Hardwired)
-
-The AI uses these built-in preferences:
-- Exercise activities: Morning (6:00 AM - 10:00 AM)
-- Study/Classes: Focused hours (9:00 AM - 5:00 PM)
-- Meals: Regular intervals (breakfast 7-9 AM, lunch 12-1 PM, dinner 6-8 PM)
-- Social/Relaxation: Evenings (6:00 PM - 10:00 PM)
-- Avoid: Demanding activities after 10:00 PM
-
-## Troubleshooting
-
-### "Could not load config.json"
-- Ensure `config.json` exists with your API key
-- Check JSON format is correct
-
-### "Error calling Gemini API"
-- Verify API key is correct
-- Check internet connection
-- Ensure API access is enabled in Google AI Studio
-
-### Build Issues
-- Use `npm run build` to compile TypeScript
-- Check that all dependencies are installed with `npm install`
-
-## Next Steps
-
-Try extending the DayPlanner:
-- Add weekly scheduling
-- Implement activity categories
-- Add location information
-- Create a web interface
-- Add conflict resolution strategies
-- Implement recurring activities
-
-## Resources
-
-- [Google Generative AI Documentation](https://ai.google.dev/docs)
-- [TypeScript Documentation](https://www.typescriptlang.org/docs/)
+## Validators
+Three potential issues include summary length, meta-language, and content relevance.  I've encountered all three of these while prompt engineering.  First, the summary length can be nearly the same length as the notes, which defeats the purpose of the summary.  In order to make sure that it's concise, I added a validator to make sure that it's either less than 150 words, or less than 50% the length of the transcription.  Another potential problem is that the AI uses meta language like "I'm an AI", or "here's a summary" or "I couldn't generate a summary" when we just want it to only give us the summary.  Here, I put a list of generic phrases and meta-language in a validator to make sure doesn't appear.  Finally, in one of my tests, the transcription and summary were completely unrelated so I have a content relevance validator too to make sure that the transcription and summary do relate.  If any of the validators are triggered, it will retry calling gemini one more time, and if it still doesn't work, it will throw an error.  On the user side, perhaps it will simply say it couldn't generate a summary.
