@@ -1,52 +1,30 @@
 <concept_spec>
-concept DayPlanner
+
+concept Summaries[Item]
 
 purpose
-    help organize activities for a single day
+    highlights the most important part of Item
 
 principle
-    activities are added one at a time, each with a title and duration;
-    activities are then assigned to time slots;
-    you can then use an LLM to assign any remaining unassigned activities
-    and view the resulting schedule
+    the user can either manually create a summary or ask an LLM to generate one. 
+    The LLM receives the Item content and then returns a concise, readable summary. 
+    The user can accept or edit this summary.
 
 state
-    a set of Activity with
-        a title String
-        a duration Number // in half-hour units, so 3 is 90 mins
-        an optional startTime Number // in half-hour slots from midnight, so 14 is 7:00am
-
-    a set of Assignment with
-        an Activity
-        an startTime Number
+    a set of `Item` with 
+        summary String  
 
     invariants
-        every assignment's activity is in the activity set
-        there is at most one assignment per activity
-        duration and startTime are between 0 and 47
+        every item has at most one summary
+        summary is a concise, relevant, and readable highlight of the item's content
+        summary contains no meta-language or AI disclaimers
+        summary is at most 50% the length of the item's content or under 150 words
 
-actions    
-    addActivity(title: String, duration: Number): Activity
-        requires title is non-empty, duration is between 0 and 47
-        effect adds fresh activity with title and duration and returns it
-        note duration is measured in half hour increments, so 3 is 90 mins
-
-    removeActivity(activity: Activity)
-        requires activity exists
-        effect removes activity
-
-    assignActivity(activity: Activity, startTime: Number)
-        requires activity exists and startTime is between 0 and 47
-        effect adds fresh assignment for activity and startTime
-
-    unassignActivity(activity: Activity)
-        requires assignment for activity exists
-        effect removes assignment for activity
-
-    async assignActivities(llm: GeminiLLM)
-        effect uses llm to assign all unassigned activities    
-
-notes
-    This is a very rudimentary concept to demonstrate how to use an LLM.
+actions
+    setSummary(summary: String, item: Item): (s: Summary)
+        effect if `item` already exists, change the summary associated with `item` to `summary`.  
+        If `item` does not exist in Summaries, create a new summary for `item` with a summary `summary`.
+    `setSummaryWithAI(text: String, item: Item): (s: Summary)`
+        effect creates a summary of `text` and associates it with the item
     
 </concept_spec>

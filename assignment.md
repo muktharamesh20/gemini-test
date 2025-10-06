@@ -11,7 +11,7 @@
 ## AI Augmentation
 **Summaries[Item]**
 - **Purpose** Highlights the most important part of Item
-- **Principle** The user can either manually create a summary or ask an LLM to generate one. The LLM receives the Item content and then returns a concise, readable summary. The user can accept, edit, or regenerate this AI summary.
+- **Principle** The user can either manually create a summary or ask an LLM to generate one. The LLM receives the Item content and then returns a concise, readable summary. The user can accept or edit this summary.
 - **State:** Set of `Item` with 
     - summary String  
 - **Actions:**
