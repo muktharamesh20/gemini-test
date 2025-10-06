@@ -1,5 +1,5 @@
 import { Summarizer, toBase64ImagePartFromFile } from './summarizer';
-import { GeminiLLM, Config } from './gemini-llm';
+import { Config } from './gemini-llm';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 function loadConfig(): Config {
@@ -39,7 +39,6 @@ class TestVisionShim {
 async function main() {
 	const config = loadConfig();
 	const vision = new TestVisionShim(config.apiKey);
-	const llm = new GeminiLLM({ apiKey: config.apiKey });
 
 	const summarizer = new Summarizer();
 

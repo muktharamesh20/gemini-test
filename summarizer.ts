@@ -17,6 +17,18 @@ export function toBase64ImagePartFromFile(filePath: string, mimeType: string): I
 	return { dataBase64: data.toString('base64'), mimeType };
 }
 
+export async function extractTextFromImage(imageData: string, mimeType: string, vision: GeminiVision): Promise<string> {
+	const ocrPrompt = [
+		'You are extracting and translating handwritten class notes from an image.',
+		'Return ONLY clean, readable text preserving math expressions and structure.',
+		'Fix spelling, expand shorthand where obvious, and standardize notation.',
+	].join(' ');
+
+	const imagePart: ImagePart = { dataBase64: imageData, mimeType };
+	const text = await vision.generateFromTextAndImages(ocrPrompt, [imagePart], 4000);
+	return text.trim();
+}
+
 export class Summarizer {
     private sections: Section[] = [];
     private summaries: Summaries = {};
@@ -63,14 +75,7 @@ export class Summarizer {
 	}
 
 	private async generateSummary(section: Section, vision: GeminiVision): Promise<string> {
-		const ocrPrompt = [
-			'You are extracting and translating handwritten class notes from an image.',
-			'Return ONLY clean, readable text preserving math expressions and structure.',
-			'Fix spelling, expand shorthand where obvious, and standardize notation.',
-		].join(' ');
-
-		const text = await vision.generateFromTextAndImages(ocrPrompt, [this.toImagePart(section)], 4000);
-		const translatedText = text.trim();
+		const translatedText = await extractTextFromImage(section.imageData, section.mimeType, vision);
 
 		const summaryPrompt = [
 			'Summarize the following notes to help a student understand the concept better.',
@@ -85,9 +90,6 @@ export class Summarizer {
 	}
 
 
-	private toImagePart(section: Section): ImagePart {
-		return { dataBase64: section.imageData, mimeType: section.mimeType };
-	}
 
 	private requireSection(sectionId: string): Section {
 		const section = this.sections.find(s => s.id === sectionId);
