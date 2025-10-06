@@ -9,7 +9,22 @@ export interface Summaries {
   [sectionId: string]: string; // maps section ID to summary text
 }
 
-import { GeminiLLM, ImagePart } from "./gemini-llm";
+import { Config, GeminiLLM } from "./gemini-llm";
+
+function loadConfig(): Config {
+  try {
+    const config = require("../config.json");
+    return config;
+  } catch (error) {
+    console.error(
+      "❌ Error loading config.json. Please ensure it exists with your API key or set GEMINI_API_KEY."
+    );
+    console.error("Error details:", (error as Error).message);
+    const fromEnv = process.env.GEMINI_API_KEY;
+    if (fromEnv && fromEnv.trim()) return { apiKey: fromEnv.trim() } as Config;
+    process.exit(1);
+  }
+}
 
 export class Summarizer {
   private summaries: Summaries = {};
@@ -18,14 +33,13 @@ export class Summarizer {
     return this.summaries;
   }
 
-  setSummary(sectionId: Section, summary: string): void {
-    this.summaries[sectionId.id] = summary;
+  setSummary(summary: string, section: Section): void {
+    this.summaries[section.id] = summary;
   }
 
   async setSummaryWithAI(
-    section: Section,
-    transcribedText: string,
-    llm: GeminiLLM
+	text: string,
+    section: Section
   ): Promise<string> {
     const summaryPrompt = [
       `Summarize the following notes to help a student understand the concept better.
@@ -38,21 +52,24 @@ export class Summarizer {
 	Try writing 3–5 bullet points total.
 	Make sure that you only add high level concepts, not detailed steps.
 	Keep it accurate, relevant, and tied directly to the notes provided.`,
-      transcribedText,
+      text,
     ].join("\n");
+
+    const config = loadConfig();
+    const llm = new GeminiLLM({ apiKey: config.apiKey });
 
     const summary = (await llm.executeLLM(summaryPrompt)).trim();
 
     // Validate the generated summary
     try {
-      this.validateSummary(summary, transcribedText);
+      this.validateSummary(summary, text);
     } catch (error) {
       const summary = (await llm.executeLLM(summaryPrompt)).trim();
-      this.validateSummary(summary, transcribedText);
+      this.validateSummary(summary, text);
     }
 
     // Add the summary to the summaries
-    this.setSummary(section, summary);
+    this.setSummary(summary, section);
 
     return summary;
   }

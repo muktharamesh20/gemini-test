@@ -1,28 +1,11 @@
-import { Summarizer, Section } from './summarizer';
-import { GeminiLLM, Config } from './gemini-llm';
-import { TestVisionShim } from './vision';
-
-function loadConfig(): Config {
-	try {
-		const config = require('../config.json');
-		return config;
-	} catch (error) {
-		console.error('❌ Error loading config.json. Please ensure it exists with your API key or set GEMINI_API_KEY.');
-		console.error('Error details:', (error as Error).message);
-		const fromEnv = process.env.GEMINI_API_KEY;
-		if (fromEnv && fromEnv.trim()) return { apiKey: fromEnv.trim() } as Config;
-		process.exit(1);
-	}
-}
+import { Summarizer, Section } from "./summarizer";
 
 // Test function that uses pre-transcribed text instead of calling vision API
 async function testSummarizationWithPreTranscribedText() {
-	const config = loadConfig();
-	const llm = new GeminiLLM({ apiKey: config.apiKey });
-	const summarizer = new Summarizer();
+  const summarizer = new Summarizer();
 
-	// Test case 1: Gaussian Elimination notes
-	const gaussianNotes = `## Lecture 8: Gaussian Elimination
+  // Test case 1: Gaussian Elimination notes
+  const gaussianNotes = `## Lecture 8: Gaussian Elimination
 
 Last Time: $Ax=b$, used Gaussian elimination + back-substitution to solve for $x$. We had a unique solution last time, but we will see other cases.
 
@@ -56,8 +39,8 @@ The resulting matrix parts are $G_2 G_1 A$ and $G_2 G_1 b$.
 This final matrix is in **REF FORM!** (Row Echelon Form).
 This transformed augmented matrix is called $(\\tilde{A}|\\tilde{b})$.`;
 
-	// Test case 2: Fractions notes (from notes2.png transcription)
-	const fractionsNotes = `Think of the "denominator" as the total number of equal parts something is divided into, and the "numerator" as how many of those parts you have or are considering.
+  // Test case 2: Fractions notes (from notes2.png transcription)
+  const fractionsNotes = `Think of the "denominator" as the total number of equal parts something is divided into, and the "numerator" as how many of those parts you have or are considering.
 
 When comparing or adding fractions, you MUST have the same "size" of parts (same denominator). This often means finding a "common denominator."
 
@@ -65,10 +48,10 @@ Students sometimes try to add or subtract numerators and denominators directly w
 
 Imagine a pizza cut into 8 slices. If you eat 3 slices, you've eaten 3/8 of the pizza. The 8 is the total slices (denominator), and the 3 is how many you ate (numerator).`;
 
-	console.log('=== TESTING SUMMARIZATION WITH PRE-TRANSCRIBED TEXT ===\n');
+  console.log("=== TESTING SUMMARIZATION WITH PRE-TRANSCRIBED TEXT ===\n");
 
-	// Test case 3: Gauss Jordan notes
-	const gaussJordanNotes = `Gauss-Jordan additional steps: make all pivots = 1, make non-zero entries above pivots
+  // Test case 3: Gauss Jordan notes
+  const gaussJordanNotes = `Gauss-Jordan additional steps: make all pivots = 1, make non-zero entries above pivots
 
 _make all pivots = 1_
 $G_3 = \begin{pmatrix} 1 & 0 & 0 \\ 0 & -1/4 & 0 \\ 0 & 0 & 1 \end{pmatrix} \begin{pmatrix} 1 & -1 & 2 & | & 1 \\ 0 & -4 & 8 & | & 0 \\ 0 & 0 & 1 & | & 1 \end{pmatrix} = \begin{pmatrix} 1 & -1 & 2 & | & 1 \\ 0 & 1 & -2 & | & 0 \\ 0 & 0 & 1 & | & 1 \end{pmatrix}$
@@ -82,62 +65,65 @@ $G_3 G_2 G_1 B$ (below the B-part of the result)
 _eliminate above pivots_
 $\begin{pmatrix} 1 & 1 & 0 \\ 0 & 1 & 2 \\ 0 & 0 & 1 \end{pmatrix} \begin{pmatrix} 1 & -1 & 2 & | & 1 \\ 0 & 1 & -2 & | & 0 \\ 0 & 0 & 1 & | & 1 \end{pmatrix} = \begin{pmatrix} 1 & 0 & 0 & | & 1 \\ 0 & 1 & 0 & | & 2 \\ 0 & 0 & 1 & | & 1 \end{pmatrix}$
 
-Reduced Row Echelon Form? RREF`
+Reduced Row Echelon Form? RREF`;
 
-	// Test 1: Gaussian Elimination
-	console.log('--- Test 1: Gaussian Elimination Notes ---');
-	const section1: Section = {
-		id: '1',
-		title: 'Gaussian Elimination',
-		imageData: 'dummy_image_data',
-		mimeType: 'image/png',
-	};
-	const summary1 = await summarizer.setSummaryWithAI(section1, gaussianNotes, llm);
-	summarizer.setSummary(section1, summary1);
-	console.log('Summary:', summary1);
-	console.log('');
+  // Test 1: Gaussian Elimination
+  console.log("--- Test 1: Gaussian Elimination Notes ---");
+  const section1: Section = {
+    id: "1",
+    title: "Gaussian Elimination",
+    imageData: "dummy_image_data",
+    mimeType: "image/png",
+  };
+  const summary1 = await summarizer.setSummaryWithAI(section1, gaussianNotes);
+  summarizer.setSummary(summary1, section1);
+  console.log("Summary:", summary1);
+  console.log("");
 
-	// Test 2: Fractions
-	console.log('--- Test 2: Fractions Notes ---');
-	const section2: Section = {
-		id: '2',
-		title: 'Fractions',
-		imageData: 'dummy_image_data',
-		mimeType: 'image/png',
-	};
+  // Test 2: Fractions
+  console.log("--- Test 2: Fractions Notes ---");
+  const section2: Section = {
+    id: "2",
+    title: "Fractions",
+    imageData: "dummy_image_data",
+    mimeType: "image/png",
+  };
 
-	// Test case 3: Gauss Jordan notes
-	console.log('--- Test 3: Gauss Jordan Notes ---');
-	const section3: Section = {
-		id: '3',
-		title: 'Gauss Jordan',
-		imageData: 'dummy_image_data',
-		mimeType: 'image/png',
-	};
-	const summary3 = await summarizer.setSummaryWithAI(section3, gaussJordanNotes, llm);
-	summarizer.setSummary(section3, summary3);
-	console.log('Summary:', summary3);
-	console.log('');
+  // Test case 3: Gauss Jordan notes
+  console.log("--- Test 3: Gauss Jordan Notes ---");
+  const section3: Section = {
+    id: "3",
+    title: "Gauss Jordan",
+    imageData: "dummy_image_data",
+    mimeType: "image/png",
+  };
+  const summary3 = await summarizer.setSummaryWithAI(
+    section3,
+    gaussJordanNotes
+  );
+  summarizer.setSummary(summary3, section3);
+  console.log("Summary:", summary3);
+  console.log("");
 
-	const summary2 = await summarizer.setSummaryWithAI(section2, fractionsNotes, llm);
-	summarizer.setSummary(section2, summary2);
-	console.log('Summary:', summary2);
-	console.log('');
+  const summary2 = await summarizer.setSummaryWithAI(section2, fractionsNotes);
+  summarizer.setSummary(summary2, section2);
+  console.log("Summary:", summary2);
+  console.log("");
 
-	console.log('=== ALL SUMMARIES ===');
-	const summaries = summarizer.getSummaries();
-	for (const [sectionId, summaryText] of Object.entries(summaries)) {
-		console.log(`\nSection ${sectionId}:`);
-		console.log(summaryText);
-	}
+  console.log("=== ALL SUMMARIES ===");
+  const summaries = summarizer.getSummaries();
+  for (const [sectionId, summaryText] of Object.entries(summaries)) {
+    console.log(`\nSection ${sectionId}:`);
+    console.log(summaryText);
+  }
 }
 
 async function main() {
-	// Only run pre-transcribed text tests
-	await testSummarizationWithPreTranscribedText();
+  // Only run pre-transcribed text tests
+  await testSummarizationWithPreTranscribedText();
 }
 
-main().catch(err => {
-	console.error(err);
-	process.exit(1);
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
 });

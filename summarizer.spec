@@ -25,7 +25,7 @@ actions
         effect if `item` already exists, change the summary associated with `item` to `summary`.  
         If `item` does not exist in Summaries, create a new summary for `item` with a summary `summary`.
     setSummaryWithAI(text: String, item: Item): (s: Summary)
-        requires text is nonempty and has a central topic
+        requires text is nonempty
         effect creates a summary of `text` with an LLM and associates it with the item
     
 </concept_spec>
