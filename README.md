@@ -1,3 +1,6 @@
+## Note
+This repo contains both a vision (transcription) and a summarizer concept.  I had them combined in a single concept at first, but seperated them out because of seperation of concerns.  For this assignment, I focus on the summaries concept.  The code for the vision works, and you can test it, but it is not used in summarizer or summarizer-tests at all.
+
 ## Concept
 **Summaries[Item]**
 - **Purpose** Highlights the most important part of Item
@@ -29,13 +32,21 @@ This augmentation reduces friction and saves time when it comes to creating summ
 
 ![User Journey](./userJourney.PNG)
 
-Every time a user finishes writing a section, there would be an automatic sync to transcribe and summarize the section.  The user doesn't see this summary until they return to the note. When they do, they can click on the summary button of a section to get a brief overview without having to read through all the notes. The user can also choose to modify the summary themselves via a button on the summary page.
+Every time a user finishes writing a section, there would be an automatic sync to transcribe and summarize the section. In order to summarize the section, the LLM gets a transcript of everything in the handwritten note, and attempts to create a high level overview of what was written. If there's no notes, or it's untintelligable, then the LLM simply says "The summary cannot be generated."  The user doesn't see this summary until they return to the note. When they do, they can click on the summary button of a section to get a brief overview without having to read through all the notes. The user can also choose to modify the summary themselves via a button on the summary page.  Here, they would simply edit the current summary text, which would then update Summaries concept via the setSummary() action.
 
 
 ### Richer Test Cases + Prompts
+One scenario is that the user attempts to make notes about some technical subject like Linear Algebra.  My test cases have notes that are fully english, as well as mostly math (ie matrices).  I wanted to test that the summarizer works for all types of inputs. 
+
+Another potential edge case is based on if the user creates notes are shorter or longer.  I also created summaries of those to see how long the summary might actually get.
+
+Finally, the user might write "notes" that's basically mostly problem solving.  I don't want the summary to be "First you add 5 + 5, then you divide it by 2."  I want to make sure that only the high level concepts are being captured.  Thus, I also created a test case with a math problem being solved, but not much conceptual definitions or anything. 
+
+Finally, I also tested 
+
 1. Original Prompt: "Summarize the following notes to help a student understand the concept better. You will simply add helpful context, not repeat the notes.  On the app that this will appear on, you will be on a side bar next to the notes Include key steps and common pitfalls, and a tiny example if relevant.  Keep it concise (<=5 bullet points). Input:"
 
-For this one, the summaries kept starting with the words "Here's a summary of".  I didn't want any language that wasn't directly related to the summary.  On one of the test cases, it also said "I couldn't generate a summary", and I didn't want any meta-language like that.  In order to limit this, here's the new prompt I created:
+For this one, the summaries kept starting with the words "Here's a summary of".  I didn't want any language that wasn't directly related to the summary.  In order to limit this, here's the new prompt I created:
 
 2. "Summarize the following notes to help a student understand the concept better. You are not explaining that you are summarizing — just provide the actual summary itself. Avoid any introductory or meta-language (e.g., ‘Here’s a summary,’ or ‘I couldn’t generate a summary’). Your summary should be written as 3–5 concise bullet points, each capturing a key step, insight, or common mistake, with a small illustrative example if helpful. Keep the language clear, direct, and contextually tied to the input."
 
@@ -47,7 +58,7 @@ For one test, I tried putting a short Gauss Jordan transcript and got back notes
 
 For this one, the first test case with the Gaussian Elimination Notes created a very long summary compared to the transcription.  I added a validator, and it said the summary was 60% of the original text length.  In order to accomodate this, I adjusted the prompt to specifically try to be concise, and be more like a table of contents than anything.
 
-4. `Summarize the following notes to help a student understand the concept better. If you detect that your summary might not match the topic or meaning of the notes, do not output a summary — instead, respond with: "The summary could not be generated because the content was unclear or unrelated." Provide only the summary itself, with no meta-language. Write bullet points that highlight key ideas, steps, or common mistakes, but make it like a table of contents and keep it very concise. Again, to reiterate, keep it as concise as possible, making it at most 40% of the total transcript length. Try writing 3–5 bullet points total. Make sure that you only add high level concepts, not detailed steps. Keep it accurate, relevant, and tied directly to the notes provided.`
+4. "Summarize the following notes to help a student understand the concept better. If you detect that your summary might not match the topic or meaning of the notes, do not output a summary — instead, respond with: "The summary could not be generated because the content was unclear or unrelated." Provide only the summary itself, with no meta-language. Write bullet points that highlight key ideas, steps, or common mistakes, but make it like a table of contents and keep it very concise. Again, to reiterate, keep it as concise as possible, making it at most 40% of the total transcript length. Try writing 3–5 bullet points total. Make sure that you only add high level concepts, not detailed steps. Keep it accurate, relevant, and tied directly to the notes provided."
 
 
 ## Validators
