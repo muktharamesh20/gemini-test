@@ -26,6 +26,7 @@ export async function extractTextFromImage(imageData: string, mimeType: string, 
 
 	const imagePart: ImagePart = { dataBase64: imageData, mimeType };
 	const text = await vision.generateFromTextAndImages(ocrPrompt, [imagePart], 4000);
+	console.log('Extracted text:', text.trim());
 	return text.trim();
 }
 
@@ -52,6 +53,10 @@ export class Summarizer {
 		return this.summaries;
 	}
 
+	addSummaryDirectly(sectionId: string, summary: string): void {
+		this.summaries[sectionId] = summary;
+	}
+
 	async addSummary(sectionId: string, vision: GeminiVision): Promise<string> {
 		const section = this.requireSection(sectionId);
 		const summary = await this.generateSummary(section, vision);
@@ -72,6 +77,18 @@ export class Summarizer {
 		const summary = await this.generateSummary(section, vision);
 		this.summaries[sectionId] = summary;
 		return summary;
+	}
+
+	async generateSummaryDirectly(section: Section, transcribedText: string, llm: GeminiLLM): Promise<string> {
+		const summaryPrompt = [
+			'Summarize the following notes to help a student understand the concept better.',
+            'You will simply add helpful context, not repeat the notes.  On the app that this will appear on, you will be on a side bar next to the notes',
+			'Include key steps, common pitfalls, and a tiny example if relevant.',
+			'Keep it concise (<=5 bullet points). Input:',
+			transcribedText,
+		].join('\n');
+
+		return (await llm.executeLLM(summaryPrompt)).trim();
 	}
 
 	private async generateSummary(section: Section, vision: GeminiVision): Promise<string> {

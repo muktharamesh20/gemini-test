@@ -11,6 +11,7 @@
     "manual": "npm run build && node -e \"require('./dist/dayplanner-tests.js').testManualScheduling()\"",
     "llm": "npm run build && node -e \"require('./dist/dayplanner-tests.js').testLLMScheduling()\"",
     "mixed": "npm run build && node -e \"require('./dist/dayplanner-tests.js').testMixedScheduling()\"",
+    "summarize:test": "npm run build && node dist/summarizer-tests.js",
     "summarize:pages": "npm run build && node dist/summarizer-tests.js"
   },
   "keywords": ["gemini", "ai", "schedule", "student", "demo", "typescript"],

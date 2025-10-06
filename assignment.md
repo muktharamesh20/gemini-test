@@ -17,5 +17,5 @@
 - **Actions:**
     - `setSummary(summary: String, item: Item): (s: Summary)`
         - **effect** if `item` already exists, change the summary associated with `item` to `summary`.  If `item` does not exist in Summaries, create a new summary for `item` with a summary `summary`.
-    - `setSummaryWithAI(item: Item): (s: Summary)`
-        - **effect** creates or modifies the summary associated with the item based on the item itself.
+    - `setSummaryWithAI(text: String, item: Item): (s: Summary)`
+        - **effect** creates a summary of `text` and associates it with the item
