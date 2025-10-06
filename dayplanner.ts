@@ -157,6 +157,9 @@ Return ONLY the JSON object, no additional text.`;
     private parseAndApplyAssignments(responseText: string, unassignedActivities: Activity[]): void {
         try {
             // Extract JSON from response (in case there's extra text)
+            console.log('Parsing LLM response...');
+            console.log(responseText);
+            console.log('here');
             const jsonMatch = responseText.match(/\{[\s\S]*\}/);
             if (!jsonMatch) {
                 throw new Error('No JSON found in response');

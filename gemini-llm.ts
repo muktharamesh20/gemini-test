@@ -26,7 +26,7 @@ export class GeminiLLM {
             // Initialize Gemini AI
             const genAI = new GoogleGenerativeAI(this.apiKey);
             const model = genAI.getGenerativeModel({ 
-                model: "gemini-2.5-flash", //-lite
+                model: "gemini-2.5-flash-lite", 
                 generationConfig: {
                     maxOutputTokens: 1000,
                 }
