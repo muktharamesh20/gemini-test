@@ -42,8 +42,8 @@ Another potential edge case is based on if the user creates notes are shorter or
 
 Finally, the user might write "notes" that's basically mostly problem solving.  I don't want the summary to be "First you add 5 + 5, then you divide it by 2."  I want to make sure that only the high level concepts are being captured.  Thus, I also created a test case with a math problem being solved, but not much conceptual definitions or anything. 
 
-Finally, I also tested 
 
+### Actual Prompts
 1. Original Prompt: "Summarize the following notes to help a student understand the concept better. You will simply add helpful context, not repeat the notes.  On the app that this will appear on, you will be on a side bar next to the notes Include key steps and common pitfalls, and a tiny example if relevant.  Keep it concise (<=5 bullet points). Input:"
 
 For this one, the summaries kept starting with the words "Here's a summary of".  I didn't want any language that wasn't directly related to the summary.  In order to limit this, here's the new prompt I created:
