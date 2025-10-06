@@ -92,8 +92,8 @@ Reduced Row Echelon Form? RREF`
 		imageData: 'dummy_image_data',
 		mimeType: 'image/png',
 	};
-	const summary1 = await summarizer.generateSummaryDirectly(section1, gaussianNotes, llm);
-	summarizer.addSummaryDirectly(section1.id, summary1);
+	const summary1 = await summarizer.setSummaryWithAI(section1, gaussianNotes, llm);
+	summarizer.setSummary(section1, summary1);
 	console.log('Summary:', summary1);
 	console.log('');
 
@@ -114,13 +114,13 @@ Reduced Row Echelon Form? RREF`
 		imageData: 'dummy_image_data',
 		mimeType: 'image/png',
 	};
-	const summary3 = await summarizer.generateSummaryDirectly(section3, gaussJordanNotes, llm);
-	summarizer.addSummaryDirectly(section3.id, summary3);
+	const summary3 = await summarizer.setSummaryWithAI(section3, gaussJordanNotes, llm);
+	summarizer.setSummary(section3, summary3);
 	console.log('Summary:', summary3);
 	console.log('');
 
-	const summary2 = await summarizer.generateSummaryDirectly(section2, fractionsNotes, llm);
-	summarizer.addSummaryDirectly(section2.id, summary2);
+	const summary2 = await summarizer.setSummaryWithAI(section2, fractionsNotes, llm);
+	summarizer.setSummary(section2, summary2);
 	console.log('Summary:', summary2);
 	console.log('');
 
