@@ -9,44 +9,14 @@ export interface Summaries {
 	[sectionId: string]: string; // maps section ID to summary text
 }
 
-import { GeminiLLM, GeminiVision, ImagePart } from './gemini-llm';
-
-export function toBase64ImagePartFromFile(filePath: string, mimeType: string): ImagePart {
-	const fs = require('fs');
-	const data = fs.readFileSync(filePath);
-	return { dataBase64: data.toString('base64'), mimeType };
-}
-
-export async function extractTextFromImage(imageData: string, mimeType: string, vision: GeminiVision): Promise<string> {
-	const ocrPrompt = [
-		'You are extracting and translating handwritten class notes from an image.',
-		'Return ONLY clean, readable text preserving math expressions and structure.',
-		'Fix spelling, expand shorthand where obvious, and standardize notation.',
-	].join(' ');
-
-	const imagePart: ImagePart = { dataBase64: imageData, mimeType };
-	const text = await vision.generateFromTextAndImages(ocrPrompt, [imagePart], 4000);
-	console.log('Extracted text:', text.trim());
-	return text.trim();
-}
+import { GeminiLLM, ImagePart } from './gemini-llm';
 
 export class Summarizer {
-    private sections: Section[] = [];
+    private items: Section[] = [];
     private summaries: Summaries = {};
 
-	createSection(title: string, imageData: string, mimeType: string): Section {
-        const section: Section = {
-			id: this.generateId('sec'),
-			title,
-			imageData,
-			mimeType,
-        };
-		this.sections.push(section);
-		return section;
-	}
-
-	getSections(): Section[] {
-		return this.sections;
+	getItems(): Section[] {
+		return this.items;
 	}
 
 	getSummaries(): Summaries {
@@ -57,67 +27,104 @@ export class Summarizer {
 		this.summaries[sectionId] = summary;
 	}
 
-	async addSummary(sectionId: string, vision: GeminiVision): Promise<string> {
-		const section = this.requireSection(sectionId);
-		const summary = await this.generateSummary(section, vision);
-		this.summaries[sectionId] = summary;
+async generateSummaryDirectly(
+  section: Section,
+  transcribedText: string,
+  llm: GeminiLLM
+): Promise<string> {
+  const summaryPrompt = [
+    `Summarize the following notes to help a student understand the concept better.
+	If you detect that your summary might not match the topic or meaning of the notes, do not output a summary — instead, respond with:
+	"The summary could not be generated because the content was unclear or unrelated."
+	Provide only the summary itself, with no meta-language.
+	Write bullet points that highlight key ideas, steps, or common mistakes,
+	but make it like a table of contents and keep it very concise.
+	Again, to reiterate, keep it as concise as possible, making it at most 40% of the total transcript length.
+	Try writing 3–5 bullet points total.
+	Make sure that you only add high level concepts, not detailed steps.
+	Keep it accurate, relevant, and tied directly to the notes provided.`,
+    transcribedText,
+  ].join('\n');
+
+		const summary = (await llm.executeLLM(summaryPrompt)).trim();
+		
+		// Validate the generated summary
+		this.validateSummary(summary, transcribedText);
+
+		// Add the summary to the summaries
+		this.addSummaryDirectly(section.id, summary);
+		
 		return summary;
 	}
 
-	async updateImage(sectionId: string, imageData: string, mimeType: string): Promise<void> {
-		const section = this.requireSection(sectionId);
-		section.imageData = imageData;
-		section.mimeType = mimeType;
-		// Remove existing summary since image changed
-		delete this.summaries[sectionId];
+	private validateSummary(summary: string, originalText: string): void {
+		// Validator 1: Check summary length (should not be too long relative to original)
+		this.validateSummaryLength(summary, originalText);
+		
+		// Validator 2: Check for content relevance
+		this.validateContentRelevance(summary, originalText);
+		
+		// Validator 3: Check for meta-language
+		this.validateNoMetaLanguage(summary);
 	}
 
-	async regenerateSummary(sectionId: string, vision: GeminiVision): Promise<string> {
-		const section = this.requireSection(sectionId);
-		const summary = await this.generateSummary(section, vision);
-		this.summaries[sectionId] = summary;
-		return summary;
+	private validateSummaryLength(summary: string, originalText: string, maxLengthRatio: number = 0.6): void {
+		const originalWords = originalText.split(/\s+/).length;
+		const summaryWords = summary.split(/\s+/).length;
+		const ratio = summaryWords / originalWords;
+		
+		if (ratio > maxLengthRatio && summaryWords > 150) {
+			throw new Error(`SummaryTooLongError: Summary is ${(ratio * 100).toFixed(1)}% of original text length (${summaryWords}/${originalWords} words). Maximum allowed: ${(maxLengthRatio * 100).toFixed(1)}%`);
+		}
 	}
 
-	async generateSummaryDirectly(section: Section, transcribedText: string, llm: GeminiLLM): Promise<string> {
-		const summaryPrompt = [
-			'Summarize the following notes to help a student understand the concept better.',
-            'You will simply add helpful context, not repeat the notes.  On the app that this will appear on, you will be on a side bar next to the notes',
-			'Include key steps, common pitfalls, and a tiny example if relevant.',
-			'Keep it concise (<=5 bullet points). Input:',
-			transcribedText,
-		].join('\n');
-
-		return (await llm.executeLLM(summaryPrompt)).trim();
+	private validateContentRelevance(summary: string, originalText: string): void {
+		// Extract meaningful words (4+ characters) from both texts
+		const extractWords = (text: string) => 
+			new Set(text.toLowerCase().match(/\b[a-z]{4,}\b/g) || []);
+		
+		const originalWords = extractWords(originalText);
+		const summaryWords = extractWords(summary);
+		
+		// Find overlap between summary and original text
+		const overlap = [...summaryWords].filter(word => originalWords.has(word));
+		const overlapRatio = summaryWords.size > 0 ? overlap.length / summaryWords.size : 0;
+		
+		if (overlapRatio < 0.2) {
+			throw new Error(`ContentRelevanceError: Summary appears unrelated to source text. Only ${(overlapRatio * 100).toFixed(1)}% of summary words overlap with original content.`);
+		}
 	}
 
-	private async generateSummary(section: Section, vision: GeminiVision): Promise<string> {
-		const translatedText = await extractTextFromImage(section.imageData, section.mimeType, vision);
-
-		const summaryPrompt = [
-			'Summarize the following notes to help a student understand the concept better.',
-            'You will simply add helpful context, not repeat the notes.  On the app that this will appear on, you will be on a side bar next to the notes',
-			'Include key steps, common pitfalls, and a tiny example if relevant.',
-			'Keep it concise (<=5 bullet points). Input:',
-			translatedText,
-		].join('\n');
-
-		const llm = new GeminiLLM({ apiKey: (vision as any).apiKey });
-		return (await llm.executeLLM(summaryPrompt)).trim();
-	}
-
-
-
-	private requireSection(sectionId: string): Section {
-		const section = this.sections.find(s => s.id === sectionId);
-		if (!section) throw new Error(`Section not found: ${sectionId}`);
-		return section;
-	}
-
-
-	private generateId(prefix: string): string {
-		const random = Math.random().toString(36).slice(2, 10);
-		const ts = Date.now().toString(36);
-		return `${prefix}_${ts}_${random}`;
+	private validateNoMetaLanguage(summary: string): void {
+		const metaPatterns = [
+			"as an ai",
+			"i am an ai",
+			"i'm an ai",
+			"as a language model",
+			"i cannot",
+			"i'm not able to",
+			"i don't have the ability",
+			"i'm sorry, but",
+			"unfortunately, i",
+			"i would need more information",
+			"here's a summary",
+			"in summary",
+			"this text discusses",
+			"overall, the passage talks about",
+			"the following is a summary",
+			"this is a summary",
+			"the summary of",
+			"to summarize",
+			"in conclusion"
+		];
+		
+		const summaryLower = summary.toLowerCase();
+		const foundPatterns = metaPatterns.filter(pattern => 
+			summaryLower.includes(pattern)
+		);
+		
+		if (foundPatterns.length > 0) {
+			throw new Error(`MetaLanguageError: Found AI meta-language: ${foundPatterns.join(', ')}`);
+		}
 	}
 }
